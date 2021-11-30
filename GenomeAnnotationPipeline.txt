@@ -1,0 +1,80 @@
+HW 1 
+awk '{print $2}' SGD_sorted.txt | sort | uniq -c | sort -n
+
+awk '{print $2}' SGD_sorted.txt | sort | uniq -c | sort -n -r | head -n 5
+
+
+Find Verified:
+awk '{print $3}' SGD_sorted.txt | sort | uniq -c | sort -n -r | head 
+
+
+awk '{print $12}' SGD_sorted.txt | sort | uniq -c | sort -n -r | head 
+
+
+The main pipeline for this class:
+
+
+#We are now going to call variants with two different approaches from the files we have been working with all course. Please use the following files, parameters, and listed versions of the software for this assignment.
+
+#We will use the reference Ebola genome: 
+
+#/data/CompRes/refs/AF086833.2.fasta
+
+#And this set of paired-end sequences: 
+
+#/data/CompRes/sra_files/SRR1972739_1.fastq
+#/data/CompRes/sra_files/SRR1972739_2.fastq
+
+#For this assignment: 
+
+################# 1. Trim the data using trimmomatic with default options and SLIDINGWINDOW:4:30 using: 
+
+trimmomatic/0.33
+$seq1 = FIRSTSEQ W/O FILETYPE
+$seq2 = SECOND SEQ W/O FILETYPE
+java -jar /packages/7x/trimmomatic/0.33/trimmomatic.jar PE $seq1.fastq $seq2.fastq $seq1.paired.trim.fq $seq1.unpaired.fq $seq2.paired.trim.fq $seq2.unpaired.fq SLIDINGWINDOW:4:30
+
+################# 2. Align the paired end reads using: 
+
+bwa/0.7.17
+$REF = REFERENCE GENOME HERE
+bwa index $REF
+
+REF=AF086833.2.fasta
+R1=SRR11972739_1.paired.trim.fq
+R2=SRR11972739_2.paired.trim.fq
+
+bwa mem $REF $R1 $R2 > bwa.sam
+
+
+################## 3. Create a sorted and indexed bam using: 
+
+module load samtools/1.8
+samtools sort bwa.sam > bwa.bam
+samtools index bwa.bam
+samtools sort -n bwa.bam -o bwa_sorted.bam
+samtools view bwa_sorted.bam
+
+################### 4. Call variants using samtools and bcftools with:
+
+module load bcftools/1.10.2
+
+
+## and using the following parameters: 
+
+samtools mpileup -uvf <$REF> <$BAM> > genotypes.vcf
+bcftools call --ploidy 1 -vm -Ov genotypes.vcf > bcftools.vcf
+
+#################### 5. Call variants using freebayes with: 
+
+module load freebayes/1.0.2
+
+#and the following parameters: 
+
+freebayes -f <$REF> <$BAM> > freebayes.vcf
+
+#Where
+
+#<$REF> is the reference genome you used
+
+#<$BAM> is the trimmed, sorted, and indexed BAM file.
